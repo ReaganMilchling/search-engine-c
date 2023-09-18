@@ -11,6 +11,8 @@ add_executable(search
     src/search.c
     src/objects.c
     src/hashmap/hashmap.c
+    src/postings/postings.c
+    src/dictionary/dictionary.c
     src/trie/trie.c
     resources/stoplist.txt
     )

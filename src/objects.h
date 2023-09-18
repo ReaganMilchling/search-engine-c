@@ -30,6 +30,7 @@ struct corpus
 void corpus_init(corpus* corpus, u_int doc_count);
 void corpus_delete(corpus* corpus, u_int doc_count);
 int tokenize(corpus* corpus, document* document);
+int process_corpus(corpus* corpus, const char* filepath, u_int count);
 void getDirectories(const char* dir_name, document* document, u_int doc_count);
 
 #endif /* OBJECTS_H */ 
