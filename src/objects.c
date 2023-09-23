@@ -1,8 +1,8 @@
 #include <ctype.h>
+#include <dirent.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
 
 #include "hashmap/hashmap.h"
@@ -29,7 +29,6 @@ int checkToken(char* token)
 {
     if(strcmp(token, "\t") == 0 || strcmp(token, "\n") == 0 || strcmp(token, " ") == 0)
     {
-        token[0] = '\0';
         return 0;
     }
     if (token[0] == '\0') return 0;
@@ -83,7 +82,7 @@ int tokenize(corpus* corpus, document* document)
         }
         else
         {
-            if (!isdigit(curr) && !ispunct(curr) && curr != '\n' && curr != '\t')
+            if (isalpha(curr))
             {
                 strncat(token, &curr, 1);
             }
@@ -200,8 +199,8 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
 
     printf("Word freq: %lu\n", corpus->corpus_word_frequency.curr_size);
     printf("Doc freq: %lu\n", corpus->document_frequency.curr_size);
-    hashmap_printto_file(&corpus->corpus_word_frequency, "../output/allf.txt");
-    hashmap_printto_file(&corpus->document_frequency, "../output/freqf.txt");
+    //hashmap_printto_file(&corpus->corpus_word_frequency, "../output/allf.txt");
+    //hashmap_printto_file(&corpus->document_frequency, "../output/freqf.txt");
    
     //remove single occurences in entire corpus
     hashmap new_word_freq;
@@ -210,7 +209,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
     hashmap_create(&new_doc_freq, DEFAULT_HASHMAP_SIZE);
     for (u_int i = 0; i < corpus->corpus_word_frequency.max_size; ++i)
     {
-        if (corpus->corpus_word_frequency.table[i].frequency > 1)
+        if (corpus->corpus_word_frequency.table[i].frequency > 1 && corpus->document_frequency.table[i].frequency > 1)
         {
             hashmap_entry *entry;
             entry = hashmap_insert(&new_word_freq, corpus->corpus_word_frequency.table[i].word);
@@ -232,6 +231,9 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
     u_int64_t post_size = 0;
     postings posting;
     postings_init(&posting);
+
+    hashmap new;
+    hashmap_create(&new, DEFAULT_HASHMAP_SIZE);
 
     for (u_int i = 0; i < count; ++i)
     {
@@ -267,6 +269,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
                     entry->frequency = (u_int)(tfidf * 1000000);
                     
                     postings_add(&posting, map->table[j].word, doc->document_name, tfidf);
+                    hashmap_insert(&new, map->table[j].word);
                 }
             }
         }
@@ -281,10 +284,13 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
 
     postings_sort(&posting);
 
+    dictionary dict;
+    dictionary_init(&dict, &posting, new.curr_size);
+
     printf("Postings size: %lu\n", post_size);
-    printf("Dictionary size: %lu\n", corpus->corpus_word_frequency.curr_size);
+    printf("Dictionary size: %lu\n", new.curr_size);
 
-
+    dictionary_printto_file(&dict, "../output/dict.txt");
     postings_printto_file(&posting, "../output/post.txt");
     hashmap_printto_file(&corpus->corpus_word_frequency, "../output/all.txt");
     hashmap_printto_file(&corpus->document_frequency, "../output/freq.txt");

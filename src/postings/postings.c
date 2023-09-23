@@ -73,13 +73,29 @@ void postings_init(postings* postings)
     postings->list = calloc(postings->_max_size, sizeof(post_entry));
 }
 
+void postings_load(postings* postings, const char* filepath)
+{
+    FILE* infile = fopen(filepath, "r");
+    if (infile == NULL) {return;}
+    
+    char token[128] = {0};
+
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    while ((read = getline(&line, &len, infile)) != -1)
+    {
+    }
+}
+
 void postings_delete(postings* postings)
 {
     free(postings->list);
     memset(postings, 0, sizeof(*postings));
 }
 
-int postings_add(postings* postings, const char* key, const char* filename, float_t weight)
+void postings_add(postings* postings, const char* key, const char* filename, float_t weight)
 {
     if (postings->_max_size - 1 == postings->size)
     {
@@ -103,31 +119,26 @@ int postings_add(postings* postings, const char* key, const char* filename, floa
 
     ++postings->_cursor;
     ++postings->size;
-    return 0;
 }
 
-int postings_sort(postings* postings)
+void postings_sort(postings* postings)
 {
     //merge_sort(postings->list, 0, postings->size);
-    
     qsort(postings->list, postings->size, sizeof(post_entry), compare);
-
-    return 0;
 }
 
-int postings_printto_file(postings* postings, const char* filepath)
+void postings_printto_file(postings* postings, const char* filepath)
 {
 
     FILE* outfile = fopen(filepath, "w+");
-    if (outfile == NULL || outfile == 0) {return -1;}
-    
-    //printf("%s\n", filepath);
+    if (outfile == NULL || outfile == 0) {return;}
+
+    fprintf(outfile, "%lu\n", postings->size);
+
     for (uint64_t i = 0; i < postings->size; ++i)
     {
-        //fprintf(outfile, "%s:%s:%f\n", postings->list[i].word, postings->list[i].file_name, postings->list[i].weight);
-        fprintf(outfile, "%s:%f\n", postings->list[i].file_name, postings->list[i].weight);
+        fprintf(outfile, "%s:%s:%f\n", postings->list[i].word, postings->list[i].file_name, postings->list[i].weight);
+        //fprintf(outfile, "%s:%f\n", postings->list[i].file_name, postings->list[i].weight);
     }
     fclose(outfile);
-
-    return 0;
 }

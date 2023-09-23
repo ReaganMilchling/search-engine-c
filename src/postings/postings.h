@@ -27,9 +27,10 @@ struct postings {
 };
 
 void postings_init(postings* postings);
+void postings_load(postings* postings, const char* filepath);
 void postings_delete(postings* postings);
-int postings_add(postings* postings, const char* key, const char* filename, float_t weight);
-int postings_sort(postings* postings);
-int postings_printto_file(postings* postings, const char* filepath);
+void postings_add(postings* postings, const char* key, const char* filename, float_t weight);
+void postings_sort(postings* postings);
+void postings_printto_file(postings* postings, const char* filepath);
 
 #endif /* POSTINGS_H */
