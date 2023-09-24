@@ -11,7 +11,7 @@ int compare_v(post_entry* first, post_entry* second)
 
     if (ret == 0) 
     {
-        return (int) ((1000000 * first->weight) - (1000000 * second->weight)); 
+        return (int) ((1000000 * first->weight) - (1000000 * second->weight)) * -1; 
     } else return ret;
 }
 
@@ -25,7 +25,7 @@ int compare(const void* l, const void* r)
 
     if (ret == 0) 
     {
-        return (int) ((1000000 * first->weight) - (1000000 * second->weight)); 
+        return (int) ((1000000 * second->weight) - (1000000 * first->weight)); 
     } else return ret;
 }
 
@@ -73,19 +73,43 @@ void postings_init(postings* postings)
     postings->list = calloc(postings->_max_size, sizeof(post_entry));
 }
 
-void postings_load(postings* postings, const char* filepath)
+void postings_load(postings* post, const char* filepath)
 {
     FILE* infile = fopen(filepath, "r");
     if (infile == NULL) {return;}
-    
-    char token[128] = {0};
 
-    char * line = NULL;
+    char* str = NULL;
+
     size_t len = 0;
-    ssize_t read;
+    char* list[3];
+    uint index = 0;
 
-    while ((read = getline(&line, &len, infile)) != -1)
+    getline (&str, &len, infile);
+    str[strlen(str) - 1] = '\0';
+    //printf("%s\n", str);
+    post->size = atoi(str);
+    
+    post->list = calloc(post->size, sizeof(post_entry));
+
+    for (uint i = 0; i < post->size && infile != NULL; ++i)
     {
+        getline (&str, &len, infile);
+        char *ptr = strtok(str, DELIMINATER);
+
+        while(ptr != NULL)
+        {
+            //printf("'%s'\n", ptr);
+            list[index++] = ptr;
+            ptr = strtok(NULL, DELIMINATER);
+        }
+        
+        //printf("%s\n", list[0]);
+        memcpy(post->list[i].word, list[0], MAX_WORD_LENGTH);
+        memcpy(post->list[i].file_name, list[1], MAX_WORD_LENGTH);
+        
+        list[2][strlen(list[2]) - 1] = '\0';
+        post->list[i].weight = atof(list[2]);
+        index = 0;
     }
 }
 

@@ -8,6 +8,8 @@
 #define STARTING_SIZE 1024
 #define MAX_WORD_LENGTH 128
 #define MAX_FILE_LENGTH 256
+#define DELIMINATER ":"
+
 
 typedef struct post_entry post_entry;
 struct post_entry {
