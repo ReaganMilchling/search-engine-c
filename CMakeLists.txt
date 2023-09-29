@@ -10,6 +10,7 @@ project(search_engine_c
 add_executable(search 
     src/search.c
     src/objects.c
+    src/arraylist/arraylist.c
     src/hashmap/hashmap.c
     src/postings/postings.c
     src/dictionary/dictionary.c

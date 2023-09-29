@@ -81,8 +81,6 @@ void postings_load(postings* post, const char* filepath)
     char* str = NULL;
 
     size_t len = 0;
-    char* list[3];
-    uint index = 0;
 
     getline (&str, &len, infile);
     str[strlen(str) - 1] = '\0';
@@ -93,6 +91,8 @@ void postings_load(postings* post, const char* filepath)
 
     for (uint i = 0; i < post->size && infile != NULL; ++i)
     {
+        uint index = 0;
+        char* list[3];
         getline (&str, &len, infile);
         char *ptr = strtok(str, DELIMINATER);
 
@@ -109,7 +109,6 @@ void postings_load(postings* post, const char* filepath)
         
         list[2][strlen(list[2]) - 1] = '\0';
         post->list[i].weight = atof(list[2]);
-        index = 0;
     }
 }
 
