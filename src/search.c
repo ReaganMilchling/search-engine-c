@@ -19,9 +19,9 @@ int compare_dict_entry(const void* l, const void* r)
 {
     dict_entry* first = (dict_entry*)l;
     dict_entry* second = (dict_entry*)r;
-    printf("%s:%s\n", first->word, second->word);
+    //printf("%s:%s\n", first->word, second->word);
     return strcmp(first->word, second->word);
-};
+}
 
 void dict_write(const void *d, char *str)
 {
@@ -50,7 +50,7 @@ void dict_entry_stream(const void *d, FILE* stream)
 {
     dict_entry* data = (dict_entry*)d;
     fprintf(stream, "%s:%hu:%lu\n", data->word, data->length, data->index_start);
-};
+}
 
 int compare_post_entry(const void* l, const void* r)
 {
@@ -59,11 +59,10 @@ int compare_post_entry(const void* l, const void* r)
 
     int ret = strcmp(first->word, second->word);
 
-    if (ret == 0) 
-    {
+    if (ret == 0) {
         return (int) ((second->weight - first->weight)*1000000); 
     } else return ret;
-};
+}
 
 void post_write(const void *d, char *str)
 {
@@ -75,12 +74,10 @@ void post_write(const void *d, char *str)
 
     while(ptr != NULL)
     {
-        //printf("'%s'\n", ptr);
         list[index++] = ptr;
         ptr = strtok(NULL, DELIMINATER);
     }
 
-    //printf("%s\n", list[0]);
     memcpy(data->word, list[0], MAX_WORD_LENGTH);
     memcpy(data->file_name, list[1], MAX_WORD_LENGTH);
 
@@ -92,7 +89,7 @@ void post_entry_stream(const void *d, FILE* stream)
 {
     post_entry* data = (post_entry*)d;
     fprintf(stream, "%s:%s:%f\n", data->word, data->file_name, data->weight);
-};
+}
 
 int compare_hash(const void* l, const void* r)
 {
@@ -100,7 +97,7 @@ int compare_hash(const void* l, const void* r)
     hashmap_entry* second = (hashmap_entry*)r;
 
     return second->frequency - first->frequency; 
-};
+}
 
 void calc_corpus(const char* dir)
 {
@@ -122,43 +119,30 @@ void calc_corpus(const char* dir)
 
 void search(char* list[], int len)
 {
-    ArrayList postings;
-    list_init(&postings, sizeof(post_entry), compare_post_entry, post_entry_stream);
-    list_load(&postings, "../output/post.txt", post_write);
-    list_print_file(&postings, "../output/postteststts.txt");
+    arraylist *postings = list_init(sizeof(post_entry), compare_post_entry, post_entry_stream);
+    list_load(postings, "../output/post.txt", post_write, true);
 
-    ArrayList dictl;
-    list_init(&dictl, sizeof(dict_entry), compare_dict_entry, dict_entry_stream);
-    list_load(&dictl, "../output/dict.txt", dict_write);
-    list_print_file(&dictl, "../output/dicttest1.txt");
+    arraylist *dict = list_init(sizeof(dict_entry), compare_dict_entry, dict_entry_stream);
+    list_load(dict, "../output/dict.txt", dict_write, true);
 
     hashmap scores;
     hashmap_create(&scores, DEFAULT_HASHMAP_SIZE);
 
     for (uint i = 0; i < len; ++i)
     {
-        dict_entry *search = calloc(1, sizeof(dict_entry));
-        //memcpy(search->word, list[i], MAX_WORD_LENGTH);
-        strncpy(search->word, list[i], 128);
-
-
-
-        dict_entry* entry = (dict_entry*) list_find(&dictl, search);
-        //entry = dictionary_find(&dict, list[i]);
+        //casting char[128] to post_entry, words because word is first item in structu
+        dict_entry* entry = (dict_entry*) list_find(dict, list[i]);
         if (entry != NULL)
         {
             dict_entry_print(entry);
             for (uint i = entry->index_start; i < entry->index_start + entry->length; ++i)
             {
-                //printf("%s ", post.list[i].word);
                 //printf("File: %s Score: %f\n", post.list[i].file_name, post.list[i].weight);
-                post_entry *tmp = (post_entry*)list_get(&postings, i);
-                hashmap_entry* entry;
-                entry = hashmap_insert(&scores, tmp->file_name);
+                post_entry *tmp = (post_entry*)list_get(postings, i);
+                hashmap_entry* entry = hashmap_insert(&scores, tmp->file_name);
                 entry->frequency += (int)(tmp->weight * 1000000);
             }
         }
-        free(search);
     }
     hashmap_printto_file(&scores, "../output/scores.txt");
     qsort(scores.table, scores.max_size, sizeof(hashmap_entry), compare_hash);
@@ -168,8 +152,8 @@ void search(char* list[], int len)
         printf("%u match: %s with score: %f\n", i, scores.table[i].word, ((float)scores.table[i].frequency)/1000000);
     }
 
-    //list_destroy(&test);
-    //dictionary_delete(&dict);
+    list_destroy(dict);
+    list_destroy(postings);
 }
 
 int main(int argc, char *argv[])

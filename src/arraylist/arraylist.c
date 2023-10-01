@@ -5,23 +5,40 @@
 
 #include "arraylist.h"
 
+#define INITIAL_LIST_SIZE 1024
+#define GROWTH_FACTOR 2
 
-void list_init(ArrayList* this, size_t size, callback_cmp fn_cmp, callback_stream fn_stream)
+struct arraylist {
+    void *list;
+    size_t size;
+
+    bool sorted;
+    size_t max_size;
+    size_t item_size;
+    cb_cmp fn_cmp;
+    cb_stream fn_stream;
+};
+
+arraylist* list_init(size_t size, cb_cmp fn_cmp, cb_stream fn_stream)
 {
     if (fn_cmp == NULL || fn_stream == NULL || size == 0)
-        return;
+        return 0;
 
-    this->_fn_cmp = fn_cmp;
-    this->_fn_stream = fn_stream;
-    this->_sorted = false;
-    this->_max_size = INITIAL_LIST_SIZE;
-    this->_type_byte_size = size;
+    arraylist* l = calloc(1, sizeof(arraylist));
 
-    this->size = 0;
-    this->list = calloc(this->_max_size, this->_type_byte_size);
+    l->fn_cmp = fn_cmp;
+    l->fn_stream = fn_stream;
+    l->sorted = false;
+    l->max_size = INITIAL_LIST_SIZE;
+    l->item_size = size;
+
+    l->size = 0;
+    l->list = calloc(l->max_size, l->item_size);
+
+    return l;
 }
 
-void list_load(ArrayList* this, const char* filepath, callback_load fn_load)
+void list_load(arraylist* this, const char* filepath, cb_load fn_load, bool sorted)
 {
     // The first line must always be an integer that holds the size of the list (line numbers)
     FILE* infile = fopen(filepath, "r");
@@ -37,87 +54,91 @@ void list_load(ArrayList* this, const char* filepath, callback_load fn_load)
     getline (&str, &len, infile);
     str[strlen(str) - 1] = '\0';
     this->size = atoi(str);
-    this->list = calloc(this->size, this->_type_byte_size);
+    this->list = calloc(this->size, this->item_size);
 
     for (uint i = 0; i < this->size && infile != NULL; ++i)
     {
         getline (&str, &len, infile);
-        fn_load(this->list + (this->_type_byte_size) * i, str);
+        fn_load(this->list + (this->item_size) * i, str);
     }
-    this->_sorted = true;
+
+    if (!sorted) 
+        list_sort(this);
+
+    this->sorted = true;
 }
 
-void list_destroy(ArrayList* this)
+void list_destroy(arraylist* this)
 {
     free(this->list);
     free(this);
 }
 
-void list_append(ArrayList* this, void *value)
+void list_append(arraylist* this, void *value)
 {
     list_insert(this, value, this->size);
 }
 
-void list_insert(ArrayList* this, void *value, size_t index)
+void list_insert(arraylist* this, void *value, size_t index)
 {
     if (index > this->size)
         index = this->size;
 
-    if (this->_max_size == this->size)
+    if (this->max_size == this->size)
     {
-        this->_max_size *= GROWTH_FACTOR;
-        this->list = realloc(this->list, this->_type_byte_size*this->_max_size);
+        this->max_size *= GROWTH_FACTOR;
+        this->list = realloc(this->list, this->item_size*this->max_size);
     }
     
     if (index < this->size)
     {
-        memmove(this->list + (this->_type_byte_size) * (index + 1), 
-                this->list + (this->_type_byte_size) * (index),
-                this->_type_byte_size);
+        memmove(this->list + (this->item_size) * (index + 1), 
+                this->list + (this->item_size) * (index),
+                this->item_size);
     }
 
-    memcpy(this->list + (this->_type_byte_size) * index, value, this->_type_byte_size);
+    memcpy(this->list + (this->item_size) * index, value, this->item_size);
 
     ++this->size;
-    this->_sorted = false;
+    this->sorted = false;
 }
 
-void list_sort(ArrayList* this)
+void list_sort(arraylist* this)
 {
-    if (!this->_sorted)
+    if (!this->sorted)
     {
-        qsort(this->list, this->size, this->_type_byte_size, this->_fn_cmp); 
-        this->_sorted = true;
+        qsort(this->list, this->size, this->item_size, this->fn_cmp); 
+        this->sorted = true;
     }
 }
 
-void *list_get(ArrayList* this, size_t index)
+void *list_get(arraylist* this, size_t index)
 {
     if (index > this->size) index = this->size - 1;
 
-    return this->list + (this->_type_byte_size) * (index);
+    return this->list + (this->item_size) * (index);
 }
 
-void *list_find(ArrayList* this, void *value)
+void *list_find(arraylist* this, void *value)
 {
-    if (this->_sorted) 
+    if (this->sorted) 
     {
-        return bsearch(value, this->list, this->size, this->_type_byte_size, this->_fn_cmp);
+        return bsearch(value, this->list, this->size, this->item_size, this->fn_cmp);
     } 
     else 
     {
         for (uint i = 0; i < this->size; ++i)
         {
-            if (this->_fn_cmp(this->list + (this->_type_byte_size) * i, value) == 0) 
+            if (this->fn_cmp(this->list + (this->item_size) * i, value) == 0) 
             {
-                return (this->list + (this->_type_byte_size) * i);
+                return (this->list + (this->item_size) * i);
             }
         }
     }
     return 0;
 }
 
-void list_print_file(ArrayList* this, const char* filepath)
+void list_print_file(arraylist* this, const char* filepath)
 {
     FILE* outfile = fopen(filepath, "w+");
     if (outfile == NULL || outfile == 0) 
@@ -127,15 +148,15 @@ void list_print_file(ArrayList* this, const char* filepath)
 
     for (uint64_t i = 0; i < this->size; ++i)
     {
-        this->_fn_stream(this->list + (this->_type_byte_size) * i, outfile);
+        this->fn_stream(this->list + (this->item_size) * i, outfile);
     }
     fclose(outfile);
 }
 
-void list_print_console(ArrayList* this, size_t index)
+void list_print_console(arraylist* this, size_t index)
 {
     if (index >= this->size)
         index = this->size - 1;
 
-    this->_fn_stream(this->list + (this->_type_byte_size) * index, stdout);
+    this->fn_stream(this->list + (this->item_size) * index, stdout);
 }

@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-I.
 TARGET=main
-CCLIST=objects.c arraylist/arraylist.c hashmap/hashmap.c trie/trie.c search.c postings/postings.c dictionary/dictionary.c
+CCLIST=objects.c arraylist/arraylist.c hashmap/hashmap.c trie/trie.c search.c postings/postings.c dictionary/dictionary.c hashtable/hashtable.c
 
 compileLong:
 	$(CC) -c -o functions.o functions.c

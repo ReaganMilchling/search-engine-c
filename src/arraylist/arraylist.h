@@ -5,37 +5,25 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define INITIAL_LIST_SIZE 1024
-#define GROWTH_FACTOR 2
+typedef int (*cb_cmp)(const void *l, const void *r);
+typedef void (*cb_stream)(const void *d, FILE* stream);
+typedef void (*cb_load)(const void *d, char *s);
 
-typedef int (*callback_cmp)(const void *l, const void *r);
-typedef void (*callback_stream)(const void *d, FILE* stream);
-typedef void (*callback_load)(const void *d, char *s);
+typedef struct arraylist arraylist;
 
-typedef struct ArrayList ArrayList;
-struct ArrayList {
-    void *list;
-    size_t size;
+arraylist* list_init(size_t size, cb_cmp fn_cmp, cb_stream fn_stream);
+void list_load(arraylist* list, const char* filepath, cb_load fn_load, bool sorted);
+void list_destroy(arraylist* list);
 
-    bool _sorted;
-    size_t _max_size;
-    size_t _type_byte_size;
-    callback_cmp _fn_cmp;
-    callback_stream _fn_stream;
-};
+void list_append(arraylist* list, void *value);
+void list_insert(arraylist* list, void *value, size_t index);
+//void list_remove(arraylist* list, size_t index);
+void list_sort(arraylist* list);
 
-void list_init(ArrayList* arraylist, size_t size, callback_cmp fn_cmp, callback_stream fn_stream);
-void list_load(ArrayList* arraylist, const char* filepath, callback_load fn_load);
-void list_destroy(ArrayList* arraylist);
+void *list_get(arraylist* list, size_t index);
+void *list_find(arraylist* list, void *value);
 
-void list_append(ArrayList* arraylist, void *value);
-void list_insert(ArrayList* arraylist, void *value, size_t index);
-void list_sort(ArrayList* arraylist);
-
-void *list_get(ArrayList* arraylist, size_t index);
-void *list_find(ArrayList* arraylist, void *value);
-
-void list_print_file(ArrayList* arraylist, const char* filepath);
-void list_print_console(ArrayList* arraylist, size_t index);
+void list_print_file(arraylist* list, const char* filepath);
+void list_print_console(arraylist* list, size_t index);
 
 #endif /* ARRAYLIST_H */

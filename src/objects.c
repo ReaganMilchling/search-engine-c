@@ -27,11 +27,11 @@ void addToken(char* token, FILE* outfile, hashmap* file_hm, corpus* corpus)
 
 int checkToken(char* token)
 {
-    if(strcmp(token, "\t") == 0 || strcmp(token, "\n") == 0 || strcmp(token, " ") == 0)
+    if(strcmp(token, "\t") == 0 || strcmp(token, "\n") == 0 ||
+        strcmp(token, " ") == 0 || token[0] == '\0')
     {
         return 0;
     }
-    if (token[0] == '\0') return 0;
     return 1;
 }
 
@@ -63,19 +63,20 @@ int tokenize(corpus* corpus, document* document)
         }
         else if (curr == '<')
         {
+            if (checkToken(token))
+            {
+                if (hashmap_exists(&corpus->stoplist, token) == 0)
+                {
+                    addToken(token, outfile, &document->word_frequency, corpus);
+                }
+                else {token[0] = '\0';}
+            }
+
             while (curr != '>')
             {
                 if (curr == EOF)
                 {
                     break;
-                }
-                if (checkToken(token))
-                {
-                    if (hashmap_exists(&corpus->stoplist, token) == 0)
-                    {
-                        addToken(token, outfile, &document->word_frequency, corpus);
-                    }
-                    else {token[0] = '\0';}
                 }
                 curr = fgetc(infile);
             }
@@ -98,36 +99,22 @@ int tokenize(corpus* corpus, document* document)
 
 void getDirectories(const char* dir_name, document* document, u_int doc_count)
 {
-    DIR *inputFolder;
+    DIR *inputFolder = opendir(dir_name);
     struct dirent *dir;
 
     u_int count = 0;
-    const char* dirName = dir_name;
 
-    inputFolder = opendir(dirName);
     if (inputFolder)
     {
-        while (((dir = readdir(inputFolder)) != NULL) && count <= doc_count- 1)
+        while (((dir = readdir(inputFolder)) != NULL) && count <= doc_count - 1)
         {
             if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0)
             {
-                char infile[MAX_FILENAME_LEN] = { 0 };
-                strcat(infile, dirName); 
-                strcat(infile, "/"); 
-                strcat(infile, dir->d_name); 
-                
-                char outfile[MAX_FILENAME_LEN] = { "../output/freq/" };
-                //create directory if not exists
-                strncat(outfile, dir->d_name, strlen(dir->d_name)-5);
-                strcat(outfile, ".txt");
-                //printf("%s\n", outfile);
+                snprintf(document[count].infile_name, MAX_FILENAME_LEN, "%s%s%s", dir_name, "/", dir->d_name);
+                snprintf(document[count].outfile_name, MAX_FILENAME_LEN, "%s%s%s", "../output/freq/", dir->d_name, ".txt");
+                // TODO create freq directory if not exists
 
-                char name[MAX_FILENAME_LEN] = { 0 };
-                strncat(name, dir->d_name, strlen(dir->d_name)-5);
-
-                memcpy(document[count].document_name, name, MAX_FILENAME_LEN);
-                memcpy(document[count].infile_name, infile, MAX_FILENAME_LEN);
-                memcpy(document[count].outfile_name, outfile, MAX_FILENAME_LEN);
+                snprintf(document[count].document_name, MAX_FILENAME_LEN, "%s", dir->d_name);
                 count ++;
             }
         }
@@ -137,7 +124,6 @@ void getDirectories(const char* dir_name, document* document, u_int doc_count)
 
 void get_stoplist(hashmap *stoplist, const char* file_path)
 {
-
     FILE* stoplist_file = fopen(file_path, "r");
     char stopword[MAX_WORD_LENGTH] = { 0 };
     hashmap_create(stoplist, 2048);
@@ -197,10 +183,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
         hashmap_printto_file(&doc->word_frequency, doc->outfile_name);
     }
 
-    printf("Word freq: %lu\n", corpus->corpus_word_frequency.curr_size);
-    printf("Doc freq: %lu\n", corpus->document_frequency.curr_size);
-    //hashmap_printto_file(&corpus->corpus_word_frequency, "../output/allf.txt");
-    //hashmap_printto_file(&corpus->document_frequency, "../output/freqf.txt");
+    printf("BEFORE - corpus:%lu - document:%lu\n", corpus->corpus_word_frequency.curr_size, corpus->document_frequency.curr_size);
    
     //remove single occurences in entire corpus
     hashmap new_word_freq;
@@ -225,8 +208,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
     hashmap_delete(&corpus->document_frequency);
     corpus->document_frequency = new_doc_freq;
 
-    printf("Word freq: %lu\n", corpus->corpus_word_frequency.curr_size);
-    printf("Doc freq: %lu\n", corpus->document_frequency.curr_size);
+    printf("AFTER - corpus:%lu - document:%lu\n", corpus->corpus_word_frequency.curr_size, corpus->document_frequency.curr_size);
 
     u_int64_t post_size = 0;
     postings posting;
@@ -273,12 +255,11 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
                 }
             }
         }
-        
 
-        char outfile[MAX_FILENAME_LEN] = { "../output/tfidf/" };
-        strncat(outfile, corpus->document_list[i].document_name, MAX_FILENAME_LEN - 1);
-        strcat(outfile, ".txt");
-        hashmap_printto_file(&tfidf_list, outfile);
+        char outfile[MAX_FILENAME_LEN];
+        snprintf(outfile, MAX_FILENAME_LEN, "%s%s%s", "../output/tfidf/", corpus->document_list[i].document_name, ".txt");
+        //hashmap_printto_file(&tfidf_list, outfile);
+
         hashmap_delete(&tfidf_list);
     }
 
