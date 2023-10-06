@@ -1,5 +1,5 @@
-#ifndef OBJECTS_H
-#define OBJECTS_H
+#ifndef CORPUS_H
+#define CORPUS_H
 
 #include <string.h>
 #include <sys/types.h>
@@ -33,4 +33,4 @@ int tokenize(corpus* corpus, document* document);
 int process_corpus(corpus* corpus, const char* filepath, u_int count);
 void getDirectories(const char* dir_name, document* document, u_int doc_count);
 
-#endif /* OBJECTS_H */ 
+#endif /* CORPUS_H */ 

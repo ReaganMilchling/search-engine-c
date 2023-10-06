@@ -68,6 +68,22 @@ void list_load(arraylist* this, const char* filepath, cb_load fn_load, bool sort
     this->sorted = true;
 }
 
+void list_transfer(arraylist* this, void *transfer, size_t length, size_t count)
+{
+    this->max_size = length;
+    
+    if (this->size != 0)
+        free(this->list);
+
+    this->size = count;
+    this->list = calloc(this->size, this->item_size);
+
+    memcpy(this->list, transfer, length*this->item_size);
+
+    this->sorted = false;
+    list_sort(this);
+}
+
 void list_destroy(arraylist* this)
 {
     free(this->list);
@@ -146,7 +162,7 @@ void list_print_file(arraylist* this, const char* filepath)
 
     fprintf(outfile, "%lu\n", this->size);
 
-    for (uint64_t i = 0; i < this->size; ++i)
+    for (size_t i = 0; i < this->size; ++i)
     {
         this->fn_stream(this->list + (this->item_size) * i, outfile);
     }

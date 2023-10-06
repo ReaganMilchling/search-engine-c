@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "arraylist/arraylist.h"
 #include "hashmap/hashmap.h"
 #include "postings/postings.h"
 #include "dictionary/dictionary.h"
-#include "objects.h"
+#include "corpus.h"
 
 
 void addToken(char* token, FILE* outfile, hashmap* file_hm, corpus* corpus)
@@ -169,6 +170,92 @@ int calc_tf_idf()
    return 0; 
 }
 
+
+typedef struct dict_t dict_t;
+struct dict_t {
+    char word[MAX_WORD_LENGTH];
+    size_t length;
+    size_t index_start;
+};
+
+typedef struct post_v_t post_v_t;
+struct post_v_t {
+    char file_name[MAX_FILE_LENGTH];
+    char word[MAX_WORD_LENGTH];
+    float_t weight;
+};
+
+int dict_t_cmp(const void* l, const void* r)
+{
+    dict_entry* first = (dict_entry*)l;
+    dict_entry* second = (dict_entry*)r;
+    return strcmp(first->word, second->word);
+}
+
+void dict_t_load(const void *d, char *str)
+{
+    dict_entry* data = (dict_entry*)d;
+    size_t index = 0;
+    char* list[3];
+    char *ptr = strtok(str, DELIMINATER);
+
+    while(ptr != NULL)
+    {
+        list[index++] = ptr;
+        ptr = strtok(NULL, DELIMINATER);
+    }
+
+    memcpy(data->word, list[0], MAX_WORD_LENGTH);
+    data->length = atoi(list[1]);
+    list[2][strlen(list[2]) - 1] = '\0';
+    data->index_start = atoi(list[2]);
+}
+
+void dict_t_stream(const void *d, FILE* stream)
+{
+    dict_t* data = (dict_t*)d;
+    fprintf(stream, "%s:%zu:%lu\n", data->word, data->length, data->index_start);
+}
+
+int post_v_t_cmp(const void* l, const void* r)
+{
+    post_entry* first = (post_entry*)l;
+    post_entry* second = (post_entry*)r;
+
+    int ret = strcmp(first->word, second->word);
+
+    if (ret == 0) {
+        return (int) ((second->weight - first->weight)*1000000); 
+    } else return ret;
+}
+
+void post_v_t_load(const void *d, char *str)
+{
+    post_entry* data = (post_entry*)d;
+
+    size_t index = 0;
+    char* list[3];
+    char *ptr = strtok(str, DELIMINATER);
+
+    while(ptr != NULL)
+    {
+        list[index++] = ptr;
+        ptr = strtok(NULL, DELIMINATER);
+    }
+
+    memcpy(data->word, list[0], MAX_WORD_LENGTH);
+    memcpy(data->file_name, list[1], MAX_WORD_LENGTH);
+
+    list[2][strlen(list[2]) - 1] = '\0';
+    data->weight = atof(list[2]);
+}
+
+void post_v_t_stream(const void *d, FILE* stream)
+{
+    post_entry* data = (post_entry*)d;
+    fprintf(stream, "%s:%s:%f\n", data->word, data->file_name, data->weight);
+}
+
 int process_corpus(corpus* corpus, const char* filepath, u_int count)
 {
 
@@ -213,6 +300,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
     u_int64_t post_size = 0;
     postings posting;
     postings_init(&posting);
+    arraylist *post1 = list_init(sizeof(post_v_t), post_v_t_cmp, post_v_t_stream);
 
     hashmap new;
     hashmap_create(&new, DEFAULT_HASHMAP_SIZE);
@@ -251,6 +339,7 @@ int process_corpus(corpus* corpus, const char* filepath, u_int count)
                     entry->frequency = (u_int)(tfidf * 1000000);
                     
                     postings_add(&posting, map->table[j].word, doc->document_name, tfidf);
+                    //list_append(post, &(post_v_t){.file_name=doc->document_name, .word=map->table[j].word, .weight=tfidf});
                     hashmap_insert(&new, map->table[j].word);
                 }
             }

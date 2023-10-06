@@ -13,6 +13,7 @@ typedef struct arraylist arraylist;
 
 arraylist* list_init(size_t size, cb_cmp fn_cmp, cb_stream fn_stream);
 void list_load(arraylist* list, const char* filepath, cb_load fn_load, bool sorted);
+void list_transfer(arraylist* list, void *transfer, size_t length, size_t count);
 void list_destroy(arraylist* list);
 
 void list_append(arraylist* list, void *value);
